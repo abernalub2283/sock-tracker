@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Sock Tracker</title>
+        <link rel="stylesheet" href="style.css">>
+    </head>
+    <body>
+        <h1>Socks</h1>
+        <h2>Will-O-The-Wisp</h2>
+        <p>These socks are ethereal and mysterious, like a will-o'-the-wisp.</p>
+        <p>They seem to float and shimmer, as if they belong to another world.</p>
+        <p>Perfect for those who appreciate the mystical and the otherworldly.</p>
+        <p>Sock 2: 28 rows to go. Click a box as you finish each row</p>
+        <div class="tracker"></div>
+        <div class="progress-bar">
+            <div class="progress-fill"></div>
+        </div>
+        <p class="progress-text">0 of 28 rows done</p>
+        <script>
+            const tracker = document.querySelector('.tracker');
+
+            for (let i = 1; i <= 28; i++) {
+                const box = document.createElement('div');
+                box.className = 'row-box';
+                box.textContent = i;
+                tracker.appendChild(box);
+            }
+        </script>
+    </body>
+</html>

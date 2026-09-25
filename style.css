@@ -1,0 +1,53 @@
+body {
+    padding: 32px;
+    background-color: #191423;
+    color: #f2ead8;
+    font-family: Georgia, 'Times New Roman', serif;
+    text-align: center;
+}
+
+h1 {
+    color: #d4af37
+}
+
+.tracker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    max-width: 600px;
+    margin: 24px auto;
+}
+
+.row-box {
+    width: 48px;
+    height: 48px;
+    border: 2px solid #d4af37;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.row-box.done {
+    background-color: #d4af37;
+    color: #191423;
+}
+
+.progress-bar {
+    max-width: 600px;
+    height: 20px;
+    background-color: #2e2438;
+    border-radius: 10px;
+    margin: 24px auto;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    width: 0%;
+    background-color: #d4af37;
+    border-radius: 10px;
+    transition: width 0.3s;
+}
