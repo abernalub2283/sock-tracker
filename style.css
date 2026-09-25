@@ -51,3 +51,6 @@ h1 {
     border-radius: 10px;
     transition: width 0.3s;
 }
+
+#pair-tabs { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 16px auto; }
+#pair-tabs button.active { background-color: #d4af37; color: #191423; }

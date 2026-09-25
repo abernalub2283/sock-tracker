@@ -6,11 +6,14 @@
     </head>
     <body>
         <h1>Socks</h1>
-        <h2>Will-O-The-Wisp</h2>
-        <p>These socks are ethereal and mysterious, like a will-o'-the-wisp.</p>
-        <p>They seem to float and shimmer, as if they belong to another world.</p>
-        <p>Perfect for those who appreciate the mystical and the otherworldly.</p>
-        <p>Sock 2: 28 rows to go. Click a box as you finish each row</p>
+        <div id="pair-tabs"></div>
+        <h2 id="pair-name"></h2>
+        <form id=new-pair>
+            <h3>New sock pair</h3>
+            <input id="pair-name-input" placeholder="Pair name">
+            <input id="pair-rows-input" type=""number placeholder="Rows" min="1">
+            <button type="submit">Add Pair</button>
+        </form>
         <div class="tracker"></div>
         <div class="progress-bar">
             <div class="progress-fill"></div>
@@ -18,13 +21,92 @@
         <p class="progress-text">0 of 28 rows done</p>
         <script>
             const tracker = document.querySelector('.tracker');
+            const progressFill = document.querySelector('.progress-fill');
+            const progressText = document.querySelector('.progress-text');
+            const pairName = document.getElementById('pair-name');
+            const pairTabs = document.getElementById('pair-tabs');
 
-            for (let i = 1; i <= 28; i++) {
-                const box = document.createElement('div');
-                box.className = 'row-box';
-                box.textContent = i;
-                tracker.appendChild(box);
+            let pairs = JSON.parse(localStorage.getItem('sockPairs')) || [
+                { id: 'wisp', name: 'Will-O-The-Wisp', totalRows: 28,
+                doneRows: JSON.parse(localStorage.getItem('wispRows')) || [] }
+            ];
+            let activePairId = localStorage.getItem('activeSockPair') || 'wisp';
+
+            function getPair() {
+                return pairs.find(p => p.id === activePairId);
             }
+
+            function saveAll() {
+                localStorage.setItem('sockPairs', JSON.stringify(pairs));
+                localStorage.setItem('activeSockPair', activePairId);
+            }
+
+            function renderTabs() {
+                pairTabs.innerHTML = pairs.map(p =>
+                    `<button data-id="${p.id}"${p.id === activePairId ? ' class="active"' : ''}>${p.name}</button>`
+                ).join('');
+            }
+
+            function renderTracker() {
+                const pair = getPair();
+                pairName.textContent = pair.name;
+                tracker.innerHTML = '';
+                for (let i = 1; i <= pair.totalRows; i++) {
+                    const box = document.createElement('div');
+                    box.className = 'row-box' + (pair.doneRows.includes(i) ? ' done' : '');
+                    box.textContent = i;
+                    tracker.appendChild(box);
+                }
+                updateProgress();
+            }
+
+            function updateProgress() {
+                const pair = getPair();
+                const done = pair.doneRows.length;
+                const percent = pair.totalRows ? Math.round(done / pair.totalRows * 100) : 0;
+                progressFill.style.width = percent + '%';
+                progressText.textContent = done + ' of ' + pair.totalRows + ' rows done';
+            }
+
+            pairTabs.addEventListener('click', function(event) {
+                if (!event.target.matches('button')) return;
+                activePairId = event.target.dataset.id;
+                saveAll();
+                renderTabs();
+                renderTracker();
+            });
+
+            tracker.addEventListener('click', function(event) {
+                if (!event.target.matches('.row-box')) return;
+                const pair = getPair();
+                const row = parseInt(event.target.textContent);
+                event.target.classList.toggle('done');
+                if (pair.doneRows.includes(row)) {
+                    pair.doneRows = pair.doneRows.filter(r => r !== row);
+                } else {
+                    pair.doneRows.push(row);
+                }
+                saveAll();
+                updateProgress();
+            });
+
+            document.getElementById('new-pair').addEventListener('submit', function(event) {
+                event.preventDefault();
+                const name = document.getElementById('pair-name-input').value.trim();
+                const totalRows = parseInt(document.getElementById('pair-rows-input').value);
+                if (!name || !totalRows || totalRows < 1) return;
+                const pair = { id: 'pair' + Date.now(), name: name, totalRows: totalRows, doneRows: [] };
+                pairs.push(pair);
+                activePairId = pair.id;
+                saveAll();
+                renderTabs();
+                renderTracker();
+                event.target.reset();
+            });
+
+            renderTabs();
+            renderTracker();
+
         </script>
     </body>
 </html>
