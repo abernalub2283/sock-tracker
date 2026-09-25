@@ -11,12 +11,27 @@ h1 {
 }
 
 .tracker {
+    max-width: 600px;
+    margin: 24px auto;
+}
+
+.boxes {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
     justify-content: center;
-    max-width: 600px;
-    margin: 24px auto;
+    margin: 16px auto;
+}
+
+.sock {
+    border: 1px solid #d4af37;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 24px;
+}
+
+.rows-input {
+    width: 64px;
 }
 
 .row-box {

@@ -11,7 +11,7 @@
         <form id="new-pair">
             <h3>New sock pair</h3>
             <input id="pair-name-input" placeholder="Pair name">
-            <input id="pair-rows-input" type="number" placeholder="Rows" min="1">
+            <input id="pair-rows-input" type="number" placeholder="Rows per sock" min="1">
             <button type="submit">Add Pair</button>
         </form>
         <div class="tracker"></div>
@@ -21,92 +21,152 @@
         <p class="progress-text">0 of 28 rows done</p>
         <script>
             const tracker = document.querySelector('.tracker');
-            const progressFill = document.querySelector('.progress-fill');
-            const progressText = document.querySelector('.progress-text');
-            const pairName = document.getElementById('pair-name');
-            const pairTabs = document.getElementById('pair-tabs');
+        const progressFill = document.querySelector('.progress-fill');
+        const progressText = document.querySelector('.progress-text');
+        const pairName = document.getElementById('pair-name');
+        const pairTabs = document.getElementById('pair-tabs');
 
-            let pairs = JSON.parse(localStorage.getItem('sockPairs')) || [
-                { id: 'wisp', name: 'Will-O-The-Wisp', totalRows: 28,
-                doneRows: JSON.parse(localStorage.getItem('wispRows')) || [] }
-            ];
-            let activePairId = localStorage.getItem('activeSockPair') || 'wisp';
+        // NEW: converts the old one-sock format into the new two-sock format, once.
+        function migratePair(p) {
+            if (p.socks) return p;
+            const total = p.totalRows || 28;
+            const oldDone = p.doneRows || [];
+            const allRows = [];
+            for (let i = 1; i <= total; i++) allRows.push(i);
+            return {
+                id: p.id,
+                name: p.name,
+                socks: [
+                    { totalRows: total, doneRows: p.id === 'wisp' ? allRows : [] },
+                    { totalRows: total, doneRows: oldDone }
+                ]
+            };
+        }
 
-            function getPair() {
-                return pairs.find(p => p.id === activePairId);
-            }
+        let pairs = (JSON.parse(localStorage.getItem('sockPairs')) || [
+            { id: 'wisp', name: 'Will-O-The-Wisp', totalRows: 28,
+            doneRows: JSON.parse(localStorage.getItem('wispRows')) || [] }
+        ]).map(migratePair);
+        let activePairId = localStorage.getItem('activeSockPair') || 'wisp';
 
-            function saveAll() {
-                localStorage.setItem('sockPairs', JSON.stringify(pairs));
-                localStorage.setItem('activeSockPair', activePairId);
-            }
+        function getPair() {
+            return pairs.find(p => p.id === activePairId);
+        }
 
-            function renderTabs() {
-                pairTabs.innerHTML = pairs.map(p =>
-                    `<button data-id="${p.id}"${p.id === activePairId ? ' class="active"' : ''}>${p.name}</button>`
-                ).join('');
-            }
+        function saveAll() {
+            localStorage.setItem('sockPairs', JSON.stringify(pairs));
+            localStorage.setItem('activeSockPair', activePairId);
+        }
 
-            function renderTracker() {
-                const pair = getPair();
-                pairName.textContent = pair.name;
-                tracker.innerHTML = '';
-                for (let i = 1; i <= pair.totalRows; i++) {
+        function renderTabs() {
+            pairTabs.innerHTML = pairs.map(p =>
+                `<button data-id="${p.id}"${p.id === activePairId ? ' class="active"' : ''}>${p.name}</button>`
+            ).join('');
+        }
+
+        function updateSockProgress(section, sock) {
+            const done = sock.doneRows.length;
+            section.querySelector('.sock-progress').textContent = done + ' of ' + sock.totalRows + ' rows done';
+        }
+
+        function renderTracker() {
+            const pair = getPair();
+            pairName.textContent = pair.name;
+            tracker.innerHTML = '';
+            pair.socks.forEach(function(sock, sockIndex) {
+                const section = document.createElement('div');
+                section.className = 'sock';
+                section.dataset.sock = sockIndex;
+                section.innerHTML = `
+                    <h3>Sock ${sockIndex + 1}</h3>
+                    <label>Rows: <input type="number" class="rows-input" value="${sock.totalRows}" min="1"></label>
+                    <button class="rows-save">Update</button>
+                    <div class="boxes"></div>
+                    <p class="sock-progress"></p>
+                `;
+                const boxesDiv = section.querySelector('.boxes');
+                for (let i = 1; i <= sock.totalRows; i++) {
                     const box = document.createElement('div');
-                    box.className = 'row-box' + (pair.doneRows.includes(i) ? ' done' : '');
+                    box.className = 'row-box' + (sock.doneRows.includes(i) ? ' done' : '');
                     box.textContent = i;
-                    tracker.appendChild(box);
+                    boxesDiv.appendChild(box);
                 }
-                updateProgress();
-            }
-
-            function updateProgress() {
-                const pair = getPair();
-                const done = pair.doneRows.length;
-                const percent = pair.totalRows ? Math.round(done / pair.totalRows * 100) : 0;
-                progressFill.style.width = percent + '%';
-                progressText.textContent = done + ' of ' + pair.totalRows + ' rows done';
-            }
-
-            pairTabs.addEventListener('click', function(event) {
-                if (!event.target.matches('button')) return;
-                activePairId = event.target.dataset.id;
-                saveAll();
-                renderTabs();
-                renderTracker();
+                updateSockProgress(section, sock);
+                tracker.appendChild(section);
             });
+            updateProgress();
+        }
 
-            tracker.addEventListener('click', function(event) {
-                if (!event.target.matches('.row-box')) return;
-                const pair = getPair();
-                const row = parseInt(event.target.textContent);
-                event.target.classList.toggle('done');
-                if (pair.doneRows.includes(row)) {
-                    pair.doneRows = pair.doneRows.filter(r => r !== row);
-                } else {
-                    pair.doneRows.push(row);
-                }
-                saveAll();
-                updateProgress();
+        function updateProgress() {
+            const pair = getPair();
+            let done = 0, total = 0;
+            pair.socks.forEach(function(sock) {
+                done += sock.doneRows.length;
+                total += sock.totalRows;
             });
+            const percent = total ? Math.round(done / total * 100) : 0;
+            progressFill.style.width = percent + '%';
+            progressText.textContent = done + ' of ' + total + ' rows done (both socks)';
+        }
 
-            document.getElementById('new-pair').addEventListener('submit', function(event) {
-                event.preventDefault();
-                const name = document.getElementById('pair-name-input').value.trim();
-                const totalRows = parseInt(document.getElementById('pair-rows-input').value);
-                if (!name || !totalRows || totalRows < 1) return;
-                const pair = { id: 'pair' + Date.now(), name: name, totalRows: totalRows, doneRows: [] };
-                pairs.push(pair);
-                activePairId = pair.id;
-                saveAll();
-                renderTabs();
-                renderTracker();
-                event.target.reset();
-            });
-
+        pairTabs.addEventListener('click', function(event) {
+            if (!event.target.matches('button')) return;
+            activePairId = event.target.dataset.id;
+            saveAll();
             renderTabs();
             renderTracker();
+        });
 
+        tracker.addEventListener('click', function(event) {
+            const section = event.target.closest('.sock');
+            if (!section) return;
+            const pair = getPair();
+            const sock = pair.socks[parseInt(section.dataset.sock)];
+
+            if (event.target.matches('.row-box')) {
+                const row = parseInt(event.target.textContent);
+                event.target.classList.toggle('done');
+                if (sock.doneRows.includes(row)) {
+                    sock.doneRows = sock.doneRows.filter(r => r !== row);
+                } else {
+                    sock.doneRows.push(row);
+                }
+                saveAll();
+                updateSockProgress(section, sock);
+                updateProgress();
+            } else if (event.target.matches('.rows-save')) {
+                const newTotal = parseInt(section.querySelector('.rows-input').value);
+                if (!newTotal || newTotal < 1) return;
+                sock.totalRows = newTotal;
+                sock.doneRows = sock.doneRows.filter(r => r <= newTotal);
+                saveAll();
+                renderTracker();
+            }
+        });
+
+        document.getElementById('new-pair').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const name = document.getElementById('pair-name-input').value.trim();
+            const totalRows = parseInt(document.getElementById('pair-rows-input').value);
+            if (!name || !totalRows || totalRows < 1) return;
+            const pair = {
+                id: 'pair' + Date.now(),
+                name: name,
+                socks: [
+                    { totalRows: totalRows, doneRows: [] },
+                    { totalRows: totalRows, doneRows: [] }
+                ]
+            };
+            pairs.push(pair);
+            activePairId = pair.id;
+            saveAll();
+            renderTabs();
+            renderTracker();
+            event.target.reset();
+        });
+
+        renderTabs();
+        renderTracker();
         </script>
     </body>
 </html>
